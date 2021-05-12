@@ -2,4 +2,5 @@
 .DS_Store
 new_train/*
 new_val_in/*
+checkpoints/*
 

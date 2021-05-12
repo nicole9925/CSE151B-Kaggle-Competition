@@ -17,7 +17,11 @@ new_path = "./new_train/new_train"
 # number of sequences in each dataset
 # train:205942  val:3200 test: 36272 
 # sequences sampled at 10HZ rate
-
+if torch.cuda.is_available():  
+    device = "cuda:0" 
+else:  
+    device = "cpu" 
+    
 class ArgoverseDataset(Dataset):
     """Dataset class for Argoverse"""
     def __init__(self, data_path: str, transform=None):
@@ -52,14 +56,10 @@ def my_collate(batch):
     """ collate lists of samples into batches, create [ batch_sz x agent_sz x seq_len x feature] """
     inp = [numpy.dstack([scene['p_in'], scene['v_in']]) for scene in batch]
     out = [numpy.dstack([scene['p_out'], scene['v_out']]) for scene in batch]
-#     out = [numpy.dstack([scene['p_out']]) for scene in batch]
-#     inp = torch.LongTensor(inp)
-#     out = torch.LongTensor(out)
     inp = torch.tensor(inp, dtype=torch.float)
     out = torch.tensor(out, dtype=torch.float)
     return [inp, out]
 
-# sampler = RandomSampler(train_dataset, num_samples = 1000, replacement=True)
 sampler = RandomSampler(train_dataset)
 
 train_loader = DataLoader(train_dataset,batch_size=batch_sz, shuffle = False, collate_fn=my_collate, num_workers=0, sampler = sampler, drop_last=True)
@@ -99,7 +99,7 @@ class NN(nn.Module):
         # This method generates the first hidden state of zeros which we'll use in the forward pass
         # We'll send the tensor holding the hidden state to the device we specified earlier as well
         hidden = torch.zeros(self.n_layers, batch_size, self.hidden_dim)
-        return hidden
+        return hidden.to(device)
 
 from tqdm import tqdm
 def train(model, device, train_loader, optimizer, epoch, log_interval=10000):
@@ -128,16 +128,15 @@ output_dim = 60   # output dimension
 net = NN(input_dim, output_dim, hidden_dim, layer_dim)
 
 learning_rate = 0.0001
-momentum = 0.5
-if torch.cuda.is_available():  
-    device = "cuda:0" 
-else:  
-    device = "cpu"  
-model = net.to(device) #using cpu here
+momentum = 0.5 
+model = net.to(device) 
 optimizer = optim.SGD(model.parameters(), lr=learning_rate,
                       momentum=momentum, weight_decay=1e-5)
 num_epoch = 10
 
-for epoch in range(1, num_epoch + 1):
+net = NN(input_dim, output_dim, hidden_dim, layer_dim)
+net.load_state_dict(torch.load("checkpoints/train-epoch3.pth",map_location=device))
+model = net.to(device)
+for epoch in range(4, num_epoch + 1):
         train(model, device, train_loader, optimizer, epoch)
         torch.save(model.state_dict(), 'checkpoints/train-epoch{}.pth'.format(epoch + 1)) 

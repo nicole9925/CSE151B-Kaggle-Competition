@@ -112,10 +112,10 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=10000):
 # input dimension
 input_dim = 76
 hidden_dim = 60  # hidden layer dimension
-layer_dim = 1   # number of hidden layers
+layer_dim = 4   # number of hidden layers
 output_dim = 60   # output dimension
     
-learning_rate = 0.0001
+learning_rate = 0.001
 momentum = 0.5
 
 net = NN(input_dim, output_dim, hidden_dim, layer_dim)
@@ -129,7 +129,7 @@ losses = []
 for epoch in range(1, num_epoch + 1):
     loss = train(model, device, train_loader, optimizer, epoch)
     losses.append(loss)
-    torch.save(model.state_dict(), 'checkpoints/train-epoch-lstm{}.pth'.format(epoch + 1)) 
+    torch.save(model.state_dict(), 'checkpoints/train-epoch-lstm-ad{}.pth'.format(epoch + 1)) 
     
-with open("losses.txt", "w") as output:
+with open("losses2.txt", "w") as output:
     output.write(str(losses))

@@ -96,7 +96,7 @@ from tqdm import tqdm
 def train(model, device, train_loader, optimizer, epoch, log_interval=10000):
     model.train()
     iterator = tqdm(train_loader, total=int(len(train_loader)))
-    running_loss = 0
+    loss_ema = -1
     for batch_idx, (data, target) in enumerate(iterator):
         data, target = torch.reshape(data, (batch_sz, 60, -1)).to(device), torch.reshape(target[:,:,:,:2], (batch_sz, 60, -1)).to(device)
         optimizer.zero_grad()
@@ -104,9 +104,11 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=10000):
         loss = nn.MSELoss()(output, target)
         loss.backward()
         optimizer.step()
-        running_loss += loss.item()
-        iterator.set_postfix(loss=running_loss)
-    return running_loss
+        if loss_ema < 0:
+            loss_ema = loss.item()
+        loss_ema = loss_ema * 0.99 + loss.item()*0.01
+        iterator.set_postfix(loss=loss_ema)
+    return loss_ema
         
 def test(model, device, test_loader):
     model.eval()

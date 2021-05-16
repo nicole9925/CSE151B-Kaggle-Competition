@@ -124,9 +124,14 @@ net = NN(input_dim, output_dim, hidden_dim, layer_dim)
 model = net.to(device)
 optimizer = optim.SGD(model.parameters(), lr=learning_rate,
                       momentum=momentum, weight_decay=1e-5)
+net = NN(input_dim, output_dim, hidden_dim, layer_dim)
+
+net.load_state_dict(torch.load("checkpoints/train-epoch-lstm-ad5.pth",map_location=device))
+model = net.to(device)
+
 num_epoch = 10
 losses = []
-for epoch in range(1, num_epoch + 1):
+for epoch in range(6, num_epoch + 1):
     loss = train(model, device, train_loader, optimizer, epoch)
     losses.append(loss)
     torch.save(model.state_dict(), 'checkpoints/train-epoch-lstm-ad{}.pth'.format(epoch + 1)) 

@@ -50,7 +50,7 @@ class ArgoverseDataset(Dataset):
 # intialize a dataset
 train_dataset  = ArgoverseDataset(data_path=new_path)
 
-batch_sz = 4
+batch_sz = 128
 
 
 def my_collate(batch):
@@ -75,18 +75,20 @@ class NN(nn.Module):
 
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
-        self.lstm = nn.LSTM(input_size, hidden_dim, n_layers, batch_first=True)   
+        self.gru = nn.GRU(input_size, hidden_dim, n_layers, batch_first=True)   
         self.fc = nn.Linear(hidden_dim, output_size)
-
+    
     def forward(self, x):
         batch_size = x.size(0)
 
         hidden = self.init_hidden(batch_size)
-        out, (hidden, hidden2) = self.lstm(x, (hidden, hidden))
+        out, hidden = self.gru(x, hidden)
+
+#         out = out.contiguous().view(-1, self.hidden_dim)
         out = self.fc(out)
-
+        
         return out
-
+    
     def init_hidden(self, batch_size):
         hidden = torch.zeros(self.n_layers, batch_size, self.hidden_dim)
         return hidden.to(device)
@@ -107,26 +109,32 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=10000):
         iterator.set_postfix(loss=running_loss)
     return running_loss
         
-
+# input dimension
 input_dim = 76
-hidden_dim = 60 
-layer_dim = 4   
-output_dim = 60   
+hidden_dim = 60  # hidden layer dimension
+layer_dim = 4   # number of hidden layers
+output_dim = 60   # output dimension
     
 learning_rate = 0.001
 momentum = 0.5
 
 net = NN(input_dim, output_dim, hidden_dim, layer_dim)
+
+net = NN(input_dim, output_dim, hidden_dim, layer_dim)
 model = net.to(device)
 optimizer = optim.SGD(model.parameters(), lr=learning_rate,
                       momentum=momentum, weight_decay=1e-5)
+net = NN(input_dim, output_dim, hidden_dim, layer_dim)
+
+net.load_state_dict(torch.load("checkpoints/train-epoch-lstm-ad5.pth",map_location=device))
+model = net.to(device)
 
 num_epoch = 10
 losses = []
 for epoch in range(6, num_epoch + 1):
     loss = train(model, device, train_loader, optimizer, epoch)
     losses.append(loss)
-#     torch.save(model.state_dict(), 'checkpoints/train-epoch-lstm-ad{}.pth'.format(epoch + 1)) 
+    torch.save(model.state_dict(), 'checkpoints/train-epoch-lstm-ad{}.pth'.format(epoch + 1)) 
     
-# with open("losses2.txt", "w") as output:
-#     output.write(str(losses))
+with open("losses2.txt", "w") as output:
+    output.write(str(losses))
